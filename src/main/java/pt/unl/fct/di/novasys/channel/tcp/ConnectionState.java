@@ -5,14 +5,18 @@ import pt.unl.fct.di.novasys.network.Connection;
 import java.util.LinkedList;
 import java.util.Queue;
 
+// 这个类是对connection的状态描述
 public class ConnectionState<T> {
-
-    public enum State {CONNECTING, CONNECTED, DISCONNECTING, DISCONNECTING_RECONNECT}
-
+    
     private final Connection<T> connection;
+    
+    public enum State {CONNECTING, CONNECTED, DISCONNECTING, DISCONNECTING_RECONNECT}
     private State state;
+    
     private final Queue<T> queue;
 
+    
+    
     public ConnectionState(Connection<T> conn) {
         this.connection = conn;
         this.state = State.CONNECTING;
@@ -25,6 +29,10 @@ public class ConnectionState<T> {
         this.queue = new LinkedList<>(initialQueue);
     }
 
+    
+    
+    
+    
     public Connection<T> getConnection() {
         return connection;
     }

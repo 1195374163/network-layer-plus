@@ -11,20 +11,33 @@ public interface Connection<T> {
 
     Attributes getPeerAttributes();
 
-    Attributes getSelfAttributes(); 
+    Attributes getSelfAttributes();
+
+
+    EventLoop getLoop();
+
 
     void disconnect();
 
+    
+    
     boolean isInbound();
 
     boolean isOutbound();
 
+    
+    
+    
+    
     void sendMessage(T msg, Promise<Void> p);
 
     void sendMessage(T msg);
 
-    EventLoop getLoop();
-
+    
+    
+    
+    
+    
     long getSentAppBytes();
 
     long getSentAppMessages();
@@ -33,6 +46,9 @@ public interface Connection<T> {
 
     long getSentControlMessages();
 
+    
+    
+    
     long getReceivedAppBytes();
 
     long getReceivedAppMessages();

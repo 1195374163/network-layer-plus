@@ -99,9 +99,8 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
 
     private static final Logger logger = LogManager.getLogger(TCPChannel.class);
     private static final short TCP_MAGIC_NUMBER = 0x4505;
-
+    
     public final static String NAME = "TCPChannel";
-
     public final static String ADDRESS_KEY = "address";
     public final static String PORT_KEY = "port";
     public final static String WORKER_GROUP_KEY = "worker_group";
@@ -113,20 +112,30 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
 
     public static final String LISTEN_ADDRESS_ATTRIBUTE = "listen_address";
 
+    
+    
     public final static String DEFAULT_PORT = "8573";
     public final static String DEFAULT_HB_INTERVAL = "0";
     public final static String DEFAULT_HB_TOLERANCE = "0";
     public final static String DEFAULT_CONNECT_TIMEOUT = "1000";
     public final static String DEFAULT_METRICS_INTERVAL = "-1";
 
+    
     public final static int CONNECTION_OUT = 0;
     public final static int CONNECTION_IN = 1;
 
+    
+    
+    // 在这里调用了网络层的封装的类，
     private final NetworkManager<T> network;
+    
+    
+    //上层bable层传递过来的参数
     private final ChannelListener<T> listener;
-
+    
     private final Attributes attributes;
 
+    // TODO: 2023/6/18 Host具体指什么
     //Host represents the client server socket, not the client tcp connection address!
     //client connection address is in connection.getPeer
     private final Map<Host, LinkedList<Connection<T>>> inConnections;
@@ -138,6 +147,7 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
     private final boolean triggerSent;
     private final boolean metrics;
 
+    
     public TCPChannel(ISerializer<T> serializer, ChannelListener<T> list, Properties properties) throws IOException {
         super("TCPChannel");
         this.listener = list;
@@ -183,19 +193,9 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
         listener.deliverEvent(new ChannelMetrics(oldIn, oldOUt, inConnections, outConnections));
     }
 
-    @Override
-    protected void onOpenConnection(Host peer) {
-        ConnectionState<T> conState = outConnections.get(peer);
-        if (conState == null) {
-            logger.debug("onOpenConnection creating connection to: " + peer);
-            outConnections.put(peer, new ConnectionState<>(network.createConnection(peer, attributes, this)));
-        } else if (conState.getState() == ConnectionState.State.DISCONNECTING) {
-            logger.debug("onOpenConnection reopening after close to: " + peer);
-            conState.setState(ConnectionState.State.DISCONNECTING_RECONNECT);
-        } else
-            logger.debug("onOpenConnection ignored: " + peer);
-    }
-
+    
+    
+    // send和deliver是TCP通道中的发送和接收处理
     @Override
     protected void onSendMessage(T msg, Host peer, int connection) {
         logger.debug("SendMessage " + msg + " " + peer + " " + (connection == CONNECTION_IN ? "IN" : "OUT"));
@@ -234,20 +234,37 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
         established.sendMessage(msg, promise);
     }
 
+
     @Override
-    protected void onOutboundConnectionUp(Connection<T> conn) {
-        logger.debug("OutboundConnectionUp " + conn.getPeer());
-        ConnectionState<T> conState = outConnections.get(conn.getPeer());
+    public void onDeliverMessage(T msg, Connection<T> conn) {
+        Host host;
+        if (conn.isInbound())
+            try {
+                host = conn.getPeerAttributes().getHost(LISTEN_ADDRESS_ATTRIBUTE);
+            } catch (IOException e) {
+                logger.error("Inbound connection without valid listen address in deliver message: " + e.getMessage());
+                conn.disconnect();
+                return;
+            }
+        else
+            host = conn.getPeer();
+        logger.debug("DeliverMessage " + msg + " " + host + " " + (conn.isInbound() ? "IN" : "OUT"));
+        listener.deliverMessage(msg, host);
+    }
+
+
+
+    @Override
+    protected void onOpenConnection(Host peer) {
+        ConnectionState<T> conState = outConnections.get(peer);
         if (conState == null) {
-            throw new AssertionError("ConnectionUp with no conState: " + conn);
-        } else if (conState.getState() == ConnectionState.State.CONNECTED) {
-            throw new AssertionError("ConnectionUp in CONNECTED state: " + conn);
-        } else if (conState.getState() == ConnectionState.State.CONNECTING) {
-            conState.setState(ConnectionState.State.CONNECTED);
-            conState.getQueue().forEach(m -> sendWithListener(m, conn.getPeer(), conn));
-            conState.getQueue().clear();
-            listener.deliverEvent(new OutConnectionUp(conn.getPeer()));
-        }
+            logger.debug("onOpenConnection creating connection to: " + peer);
+            outConnections.put(peer, new ConnectionState<>(network.createConnection(peer, attributes, this)));
+        } else if (conState.getState() == ConnectionState.State.DISCONNECTING) {
+            logger.debug("onOpenConnection reopening after close to: " + peer);
+            conState.setState(ConnectionState.State.DISCONNECTING_RECONNECT);
+        } else
+            logger.debug("onOpenConnection ignored: " + peer);
     }
 
     @Override
@@ -263,7 +280,28 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
             }
         }
     }
-
+    
+    
+    
+    
+    
+    
+    @Override
+    protected void onOutboundConnectionUp(Connection<T> conn) {
+        logger.debug("OutboundConnectionUp " + conn.getPeer());
+        ConnectionState<T> conState = outConnections.get(conn.getPeer());
+        if (conState == null) {
+            throw new AssertionError("ConnectionUp with no conState: " + conn);
+        } else if (conState.getState() == ConnectionState.State.CONNECTED) {
+            throw new AssertionError("ConnectionUp in CONNECTED state: " + conn);
+        } else if (conState.getState() == ConnectionState.State.CONNECTING) {
+            conState.setState(ConnectionState.State.CONNECTED);
+            conState.getQueue().forEach(m -> sendWithListener(m, conn.getPeer(), conn));
+            conState.getQueue().clear();
+            listener.deliverEvent(new OutConnectionUp(conn.getPeer()));
+        }
+    }
+    
     @Override
     protected void onOutboundConnectionDown(Connection<T> conn, Throwable cause) {
 
@@ -306,6 +344,10 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
         }
     }
 
+    
+    
+    
+    
     @Override
     protected void onInboundConnectionUp(Connection<T> con) {
         Host clientSocket;
@@ -354,7 +396,7 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
         if (metrics)
             oldIn.add(Pair.of(clientSocket, con));
     }
-
+    
     @Override
     public void onServerSocketBind(boolean success, Throwable cause) {
         if (success)
@@ -368,23 +410,9 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
         logger.debug("Server socket closed. " + (success ? "" : "Cause: " + cause));
     }
 
-    @Override
-    public void onDeliverMessage(T msg, Connection<T> conn) {
-        Host host;
-        if (conn.isInbound())
-            try {
-                host = conn.getPeerAttributes().getHost(LISTEN_ADDRESS_ATTRIBUTE);
-            } catch (IOException e) {
-                logger.error("Inbound connection without valid listen address in deliver message: " + e.getMessage());
-                conn.disconnect();
-                return;
-            }
-        else
-            host = conn.getPeer();
-        logger.debug("DeliverMessage " + msg + " " + host + " " + (conn.isInbound() ? "IN" : "OUT"));
-        listener.deliverMessage(msg, host);
-    }
 
+    
+    
     @Override
     public boolean validateAttributes(Attributes attr) {
         Short channel = attr.getShort(CHANNEL_MAGIC_ATTRIBUTE);

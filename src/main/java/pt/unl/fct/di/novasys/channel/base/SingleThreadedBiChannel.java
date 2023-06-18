@@ -15,6 +15,9 @@ public abstract class SingleThreadedBiChannel<T, Y> extends SingleThreadedChanne
         super(threadName);
     }
 
+    
+    
+    // 这是入站用的
     @Override
     public void inboundConnectionUp(Connection<Y> con) {
         loop.execute(() -> onInboundConnectionUp(con));
@@ -22,6 +25,7 @@ public abstract class SingleThreadedBiChannel<T, Y> extends SingleThreadedChanne
 
     protected abstract void onInboundConnectionUp(Connection<Y> con);
 
+    
     @Override
     public void inboundConnectionDown(Connection<Y> con, Throwable cause) {
         loop.execute(() -> onInboundConnectionDown(con, cause));
@@ -29,34 +33,45 @@ public abstract class SingleThreadedBiChannel<T, Y> extends SingleThreadedChanne
 
     protected abstract void onInboundConnectionDown(Connection<Y> con, Throwable cause);
 
+    
+    
+    
+    
+    
+    
+    // 这个是出站用的
     @Override
     public final void serverSocketBind(boolean success, Throwable cause) {
         loop.execute(() -> onServerSocketBind(success, cause));
     }
 
     protected abstract void onServerSocketBind(boolean success, Throwable cause);
-
+    
+    
     @Override
     public final void serverSocketClose(boolean success, Throwable cause) {
         loop.execute(() -> onServerSocketClose(success, cause));
     }
 
     protected abstract void onServerSocketClose(boolean success, Throwable cause);
-
+    
+    
     @Override
     public void outboundConnectionUp(Connection<Y> con) {
         loop.execute(() -> onOutboundConnectionUp(con));
     }
 
     protected abstract void onOutboundConnectionUp(Connection<Y> conn);
-
+    
+    
     @Override
     public void outboundConnectionDown(Connection<Y> con, Throwable cause) {
         loop.execute(() -> onOutboundConnectionDown(con, cause));
     }
-
+    
     protected abstract void onOutboundConnectionDown(Connection<Y> conn, Throwable cause);
 
+    
     @Override
     public void outboundConnectionFailed(Connection<Y> con, Throwable cause) {
         loop.execute(() -> onOutboundConnectionFailed(con, cause));

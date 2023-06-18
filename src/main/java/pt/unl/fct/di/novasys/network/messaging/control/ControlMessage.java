@@ -8,10 +8,12 @@ import java.io.IOException;
 public abstract class ControlMessage {
 
     public final static int MAGIC_NUMBER = 0x79676472;
-
+    
+    
+    // 是消息的序列化器
     interface ControlMessageSerializer<T extends ControlMessage> extends ISerializer<T> {
     }
-
+    //控制消息的类型
     public enum Type {
         HEARTBEAT(0, HeartbeatMessage.serializer),
         FIRST_HS(1, FirstHandshakeMessage.serializer),
@@ -50,6 +52,10 @@ public abstract class ControlMessage {
         }
     }
 
+    
+    
+    
+    
     public final Type type;
 
     ControlMessage(Type type) {

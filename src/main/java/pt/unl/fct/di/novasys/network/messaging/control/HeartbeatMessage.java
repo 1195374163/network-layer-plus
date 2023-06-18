@@ -2,8 +2,7 @@ package pt.unl.fct.di.novasys.network.messaging.control;
 
 import io.netty.buffer.ByteBuf;
 
-public class HeartbeatMessage extends ControlMessage
-{
+public class HeartbeatMessage extends ControlMessage {
     public HeartbeatMessage()
     {
         super(Type.HEARTBEAT);
@@ -14,14 +13,14 @@ public class HeartbeatMessage extends ControlMessage
         return type.toString();
     }
 
-    public static ControlMessageSerializer serializer = new ControlMessageSerializer<HeartbeatMessage>()
-    {
+    
+    public static ControlMessageSerializer serializer = new ControlMessageSerializer<HeartbeatMessage>() {
         @Override
-        public void serialize(HeartbeatMessage msg, ByteBuf out) { }
+        public void serialize(HeartbeatMessage msg, ByteBuf out) {
+        }
 
         @Override
-        public HeartbeatMessage deserialize(ByteBuf in)
-        {
+        public HeartbeatMessage deserialize(ByteBuf in) {
             return new HeartbeatMessage();
         }
     };

@@ -32,7 +32,9 @@ public class InConnectionHandler<T> extends ConnectionHandler<T> {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
-        logger.debug("Incoming channel active: " + ctx.channel().remoteAddress());
+        if (logger.isDebugEnabled()){
+            logger.debug("Incoming channel active: " + ctx.channel().remoteAddress());
+        }
         this.channel = ctx.channel();
         InetSocketAddress addr = (InetSocketAddress) ctx.channel().remoteAddress();
         this.peer = new Host(addr.getAddress(), addr.getPort());
@@ -58,6 +60,7 @@ public class InConnectionHandler<T> extends ConnectionHandler<T> {
         });
     }
 
+    
     @Override
     public void internalUserEventTriggered(ChannelHandlerContext ctx, Object evt) {
         if (evt instanceof HandshakeCompleted) {

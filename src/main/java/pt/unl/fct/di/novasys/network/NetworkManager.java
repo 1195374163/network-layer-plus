@@ -37,6 +37,7 @@ public class NetworkManager<T> {
     private final Bootstrap clientBootstrap;
     private final EventLoopGroup workerGroup;
 
+    
     private Channel serverChannel;
 
     
@@ -95,6 +96,8 @@ public class NetworkManager<T> {
                 .option(ChannelOption.TCP_NODELAY, true)
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeout);
     }
+    
+    
     
     
     // 作为netty的客户端，维持了一个向外的连接
@@ -182,6 +185,7 @@ public class NetworkManager<T> {
         }
     }
 
+    
     
     
     

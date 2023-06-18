@@ -24,6 +24,8 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
     private static final Logger logger = LogManager.getLogger(OutConnectionHandler.class);
     private final Bootstrap clientBootstrap;
     private final OutConnListener<T> listener;
+    
+    enum State {CONNECTING, HANDSHAKING, CONNECTED, DEAD}
     // Only change in event loop!
     private State state;
 
@@ -63,7 +65,9 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
         loop.execute(() -> {
             if (channel != null && channel.isOpen())
                 throw new AssertionError("Channel open in connect: " + peer);
-            logger.debug("Connecting to " + peer);
+            if (logger.isDebugEnabled()){
+                logger.debug("Connecting to " + peer);
+            }
             channel = clientBootstrap.connect().addListener(this).channel();
         });
     }
@@ -80,7 +84,9 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
     public void sendMessage(T msg, Promise<Void> promise) {
         loop.execute(() -> {
             if (state == State.CONNECTED) {
-                logger.debug("Writing " + msg + " to outChannel of " + peer);
+                if (logger.isDebugEnabled()){
+                    logger.debug("Writing " + msg + " to outChannel of " + peer);
+                }
                 ChannelFuture future = channel.writeAndFlush(new NetworkMessage(NetworkMessage.APP_MSG, msg));
                 if (promise != null) future.addListener(new PromiseNotifier<>(promise));
             } else
@@ -99,7 +105,9 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
         loop.execute(() -> {
             if (state == State.DEAD)
                 return;
-            logger.debug("Disconnecting channel to: " + peer + ", status was " + state);
+            if (logger.isDebugEnabled()){
+                logger.debug("Disconnecting channel to: " + peer + ", status was " + state);
+            }
             channel.flush();
             channel.close();
         });
@@ -112,7 +120,9 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
                 throw new AssertionError("Handshake completed while not in handshake state: " + peer);
             state = State.CONNECTED;
             this.peerAttributes = ((HandshakeCompleted) evt).getAttr();
-            logger.debug("Handshake completed to: " + peer);
+            if (logger.isDebugEnabled()){
+                logger.debug("Handshake completed to: " + peer);
+            }
             listener.outboundConnectionUp(this);
         } else
             logger.warn("Unknown user event caught: " + evt);
@@ -121,7 +131,9 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         if (state == State.DEAD) return;
-        logger.debug("Out connection exception: " + peer + " " + cause);
+        if (logger.isDebugEnabled()){
+            logger.debug("Out connection exception: " + peer + " " + cause);
+        }
         switch (state) {
             case CONNECTED:
                 listener.outboundConnectionDown(this, cause);
@@ -137,12 +149,16 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
         if (ctx.channel().isOpen())
             ctx.close();
     }
-
+    
+    
+    //这个方法是GenericFutureListener接口的
     @Override
     public void operationComplete(ChannelFuture future) {
         //Connection callback
         if (!future.isSuccess()) {
-            logger.debug("Connecting failed: " + future.cause());
+            if (logger.isDebugEnabled()){
+                logger.debug("Connecting failed: " + future.cause());
+            }
             if (state != State.CONNECTING)
                 throw new AssertionError("State is " + state + " in connecting callback");
             listener.outboundConnectionFailed(this, future.cause());
@@ -154,7 +170,10 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
     public void channelInactive(ChannelHandlerContext ctx) {
         if (state == State.DEAD) return;
         //Callback after connection established
-        logger.debug("Connection closed: " + peer);
+        if (logger.isDebugEnabled()){
+            logger.debug("Connection closed: " + peer);
+        }
+        
         switch (state) {
             case CONNECTED:
                 listener.outboundConnectionDown(this, null);
@@ -176,6 +195,5 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
                 ", channel=" + channel +
                 '}';
     }
-
-    enum State {CONNECTING, HANDSHAKING, CONNECTED, DEAD}
+    
 }

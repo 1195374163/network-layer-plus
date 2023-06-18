@@ -21,14 +21,23 @@ public abstract class ConnectionHandler<T> extends ChannelDuplexHandler implemen
     Host peer;
     Attributes peerAttributes;
     Attributes selfAttributes;
+    
+    
     MessageEncoder<T> encoder;
     MessageDecoder<T> decoder;
 
+    
     Channel channel;
     EventLoop loop;
+    
+    
+    
     private final MessageListener<T> consumer;
+    
+    //代表此连接是接入的还是接出的连接
     private final boolean incoming;
 
+    
     public ConnectionHandler(MessageListener<T> consumer, EventLoop loop, boolean incoming, Attributes selfAttrs) {
         this.consumer = consumer;
         this.incoming = incoming;
@@ -69,10 +78,17 @@ public abstract class ConnectionHandler<T> extends ChannelDuplexHandler implemen
 
     abstract void internalUserEventTriggered(ChannelHandlerContext ctx, Object evt);
 
+    
+  
+    
+    
     public final Host getPeer() {
         return peer;
     }
 
+    
+    
+    
     public final Attributes getPeerAttributes() {
         return peerAttributes;
     }
@@ -81,6 +97,10 @@ public abstract class ConnectionHandler<T> extends ChannelDuplexHandler implemen
         return selfAttributes;
     }
 
+    
+    
+    
+    
     public boolean isInbound() {
         return incoming;
     }
@@ -89,11 +109,19 @@ public abstract class ConnectionHandler<T> extends ChannelDuplexHandler implemen
         return !incoming;
     }
 
+    
+    
+    
+    
     @Override
     public EventLoop getLoop() {
         return loop;
     }
 
+    
+    
+    
+    
     @Override
     public long getSentAppBytes() {
         return encoder.getSentAppBytes();
