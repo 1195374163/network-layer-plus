@@ -165,20 +165,27 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
         int metricsInterval = Integer.parseInt(properties.getProperty(METRICS_INTERVAL_KEY, DEFAULT_METRICS_INTERVAL));
         this.triggerSent = Boolean.parseBoolean(properties.getProperty(TRIGGER_SENT_KEY, "false"));
         this.metrics = metricsInterval > 0;
-
+        
+        // TODO: 2023/6/18 这里看一下上层bable传来的property 
+        // 这里的Host的不是50300也不是50400，而是 8573
         Host listenAddress = new Host(addr, port);
-
+        
+        
         EventLoopGroup eventExecutors = properties.containsKey(WORKER_GROUP_KEY) ?
                 (EventLoopGroup) properties.get(WORKER_GROUP_KEY) :
                 NetworkManager.createNewWorkerGroup();
 
         network = new NetworkManager<>(serializer, this, hbInterval, hbTolerance, connTimeout, eventExecutors);
         network.createServerSocket(this, listenAddress, this, eventExecutors);
-
+        
+        
+        
         attributes = new Attributes();
         attributes.putShort(CHANNEL_MAGIC_ATTRIBUTE, TCP_MAGIC_NUMBER);
         attributes.putHost(LISTEN_ADDRESS_ATTRIBUTE, listenAddress);
 
+        
+        
         inConnections = new HashMap<>();
         outConnections = new HashMap<>();
 
@@ -344,6 +351,7 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
         }
     }
 
+    
     
     
     

@@ -81,7 +81,8 @@ public class NetworkManager<T> {
                           int hbInterval, int hbTolerance, int connectTimeout, int nWorkerThreads) {
         this(serializer, consumer, hbInterval, hbTolerance, connectTimeout, createNewWorkerGroup(nWorkerThreads));
     }
-
+    
+    //TCP通道使用这个创建
     public NetworkManager(ISerializer<T> serializer, MessageListener<T> consumer,
                           int hbInterval, int hbTolerance, int connectTimeout, EventLoopGroup workerGroup) {
         this.serializer = serializer;
