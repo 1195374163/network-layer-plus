@@ -28,6 +28,7 @@ public abstract class ConnectionHandler<T> extends ChannelDuplexHandler implemen
 
     
     Channel channel;
+    //事件执行器
     EventLoop loop;
     
     
@@ -80,6 +81,8 @@ public abstract class ConnectionHandler<T> extends ChannelDuplexHandler implemen
 
     
   
+    
+    // 下面是Connection接口中的方法
     
     
     public final Host getPeer() {

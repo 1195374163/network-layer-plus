@@ -84,7 +84,7 @@ public class NetworkManager<T> {
     
     //-----------------------------实际的执行者
     
-    //TCP通道使用这个创建一个客户端
+    //TCP通道使用这个创建一个客户端：序列化和反序列化器    tcp通道   
     public NetworkManager(ISerializer<T> serializer, MessageListener<T> consumer,
                           int hbInterval, int hbTolerance, int connectTimeout, EventLoopGroup workerGroup) {
         this.serializer = serializer;
@@ -176,10 +176,10 @@ public class NetworkManager<T> {
                 // 添加握手处理器到管道
                 ch.pipeline().addLast("InHandshakeHandler", new InHandshakeHandler(validator, attrs));
                 // 添加连接处理器到管道
-                ch.pipeline().addLast("InCon",
+                ch.pipeline().addLast("InCon",  // 传入的参数是
                         new InConnectionHandler<>(listener, consumer, ch.eventLoop(), attrs, encoder, decoder));
             }
-        });
+        }); 
         //TODO: study options / child options
         b.option(ChannelOption.SO_BACKLOG, 128);
         b.childOption(ChannelOption.SO_KEEPALIVE, true);

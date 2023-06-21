@@ -21,7 +21,7 @@ public class InConnectionHandler<T> extends ConnectionHandler<T> {
     private boolean outsideUp;
     private final InConnListener<T> listener;
     
-    // 添加一个Netty连接之后，
+    // 添加一个Netty连接之后，  TCP通道 
     public InConnectionHandler(InConnListener<T> listener, MessageListener<T> consumer, EventLoop loop,
                                Attributes selfAttrs, MessageEncoder<T> encoder, MessageDecoder<T> decoder) {
         super(consumer, loop, true, selfAttrs);
@@ -74,7 +74,8 @@ public class InConnectionHandler<T> extends ConnectionHandler<T> {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        logger.debug("In connection exception: " + ctx.channel().remoteAddress().toString() + " " + cause);
+        if (logger.isDebugEnabled())
+            logger.debug("In connection exception: " + ctx.channel().remoteAddress().toString() + " " + cause);
         if (outsideUp) {
             listener.inboundConnectionDown(this, cause);
             outsideUp = false;
@@ -84,7 +85,8 @@ public class InConnectionHandler<T> extends ConnectionHandler<T> {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
-        logger.debug("In connection closed: " + ctx.channel().remoteAddress().toString());
+        if (logger.isDebugEnabled())
+            logger.debug("In connection closed: " + ctx.channel().remoteAddress().toString());
         if (outsideUp) {
             listener.inboundConnectionDown(this, null);
             outsideUp = false;

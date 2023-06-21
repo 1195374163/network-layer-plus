@@ -139,6 +139,7 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
     //Host represents the client server socket, not the client tcp connection address!
     //client connection address is in connection.getPeer
     private final Map<Host, LinkedList<Connection<T>>> inConnections;
+    
     private final Map<Host, ConnectionState<T>> outConnections;
     
     
@@ -180,14 +181,14 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
         EventLoopGroup eventExecutors = properties.containsKey(WORKER_GROUP_KEY) ?
                 (EventLoopGroup) properties.get(WORKER_GROUP_KEY) :
                 NetworkManager.createNewWorkerGroup();
-        
+          
         //使用了从bable注册的序列化和反序列化器，注册了一个netty的客户端
         network = new NetworkManager<>(serializer, this, hbInterval, hbTolerance, connTimeout, eventExecutors);
         //创建一个netty的服务端口
         network.createServerSocket(this, listenAddress, this, eventExecutors);
         
         
-        
+        // 属性设置了两个
         attributes = new Attributes();
         attributes.putShort(CHANNEL_MAGIC_ATTRIBUTE, TCP_MAGIC_NUMBER);
         attributes.putHost(LISTEN_ADDRESS_ATTRIBUTE, listenAddress);
@@ -284,9 +285,11 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
             if (logger.isDebugEnabled())
                 logger.debug("onOpenConnection reopening after close to: " + peer);
             conState.setState(ConnectionState.State.DISCONNECTING_RECONNECT);
-        } else
-        if (logger.isDebugEnabled())
-            logger.debug("onOpenConnection ignored: " + peer);
+        } else{
+            if (logger.isDebugEnabled())
+                logger.debug("onOpenConnection ignored: " + peer);
+        }
+
     }
 
     @Override
@@ -421,9 +424,10 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
             }
             listener.deliverEvent(new InConnectionDown(clientSocket, cause));
             inConnections.remove(clientSocket);
-        } else
-        if (logger.isDebugEnabled()){
-            logger.debug("Extra InboundConnectionDown " + inConnList.size() + clientSocket);
+        } else{
+            if (logger.isDebugEnabled()){
+                logger.debug("Extra InboundConnectionDown " + inConnList.size() + clientSocket);
+            }
         }
         
         if (metrics)
@@ -449,7 +453,7 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
     }
 
 
-    
+    //
     @Override
     public boolean validateAttributes(Attributes attr) {
         Short channel = attr.getShort(CHANNEL_MAGIC_ATTRIBUTE);
