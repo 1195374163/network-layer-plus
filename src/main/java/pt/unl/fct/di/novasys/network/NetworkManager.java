@@ -76,13 +76,15 @@ public class NetworkManager<T> {
         //Default number of threads for worker groups is (from netty) number of core * 2
         this(serializer, consumer, hbInterval, hbTolerance, connectTimeout, 0);
     }
-
+    
     public NetworkManager(ISerializer<T> serializer, MessageListener<T> consumer,
                           int hbInterval, int hbTolerance, int connectTimeout, int nWorkerThreads) {
         this(serializer, consumer, hbInterval, hbTolerance, connectTimeout, createNewWorkerGroup(nWorkerThreads));
     }
     
-    //TCP通道使用这个创建
+    //-----------------------------实际的执行者
+    
+    //TCP通道使用这个创建一个客户端
     public NetworkManager(ISerializer<T> serializer, MessageListener<T> consumer,
                           int hbInterval, int hbTolerance, int connectTimeout, EventLoopGroup workerGroup) {
         this.serializer = serializer;
@@ -145,7 +147,9 @@ public class NetworkManager<T> {
     public void createServerSocket(InConnListener<T> l, Host addr, Attributes attr, AttributeValidator v, EventLoopGroup childGroup) {
         createServerSocket(l, addr, attr, v, childGroup, createNewWorkerGroup(1));
     }
-
+    
+    
+    //创建Netty的实体操作: 实参列表是  TCP通道   (ipv4:port)    attr->true   child-16   parent-1
     public void createServerSocket(InConnListener<T> listener, Host listenAddr, Attributes attrs, AttributeValidator validator,
                                    EventLoopGroup childGroup, EventLoopGroup parentGroup) {
         //Default number of threads for boss group is 1
@@ -159,14 +163,19 @@ public class NetworkManager<T> {
         b.childHandler(new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel ch) {
+                // 创建消息编码器和解码器
                 MessageEncoder<T> encoder = new MessageEncoder<>(serializer);
                 MessageDecoder<T> decoder = new MessageDecoder<>(serializer);
+                // 如果心跳容忍度或心跳间隔大于0，则添加心跳处理器
                 if(hbTolerance > 0 || hbInterval > 0)
                     ch.pipeline().addLast("IdleHandler",
                             new IdleStateHandler(hbTolerance, hbInterval, 0, MILLISECONDS));
+                // 添加消息解码器和编码器到管道
                 ch.pipeline().addLast("MessageDecoder", decoder);
                 ch.pipeline().addLast("MessageEncoder", encoder);
+                // 添加握手处理器到管道
                 ch.pipeline().addLast("InHandshakeHandler", new InHandshakeHandler(validator, attrs));
+                // 添加连接处理器到管道
                 ch.pipeline().addLast("InCon",
                         new InConnectionHandler<>(listener, consumer, ch.eventLoop(), attrs, encoder, decoder));
             }

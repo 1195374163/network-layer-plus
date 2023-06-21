@@ -130,17 +130,20 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
     private final NetworkManager<T> network;
     
     
-    //上层bable层传递过来的参数
+    //上层bable层传递过来的参数,是对通道消息的消费者，设置是发起这个通道的消费者
     private final ChannelListener<T> listener;
     
     private final Attributes attributes;
 
-    // TODO: 2023/6/18 Host具体指什么
+
     //Host represents the client server socket, not the client tcp connection address!
     //client connection address is in connection.getPeer
     private final Map<Host, LinkedList<Connection<T>>> inConnections;
     private final Map<Host, ConnectionState<T>> outConnections;
-
+    
+    
+    
+    // 下面这些字段是测试指标用的，平时不用
     private List<Pair<Host, Connection<T>>> oldIn;
     private List<Pair<Host, ConnectionState<T>>> oldOUt;
 
@@ -148,10 +151,13 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
     private final boolean metrics;
 
     
+    
+    //TPOChain使用的的通道：上层Babel调用者发过来的参数是
     public TCPChannel(ISerializer<T> serializer, ChannelListener<T> list, Properties properties) throws IOException {
         super("TCPChannel");
         this.listener = list;
-
+        
+        //properties 里面包含的信息很简陋，只要包含三样：
         InetAddress addr;
         if (properties.containsKey(ADDRESS_KEY))
             addr = Inet4Address.getByName(properties.getProperty(ADDRESS_KEY));
@@ -166,15 +172,16 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
         this.triggerSent = Boolean.parseBoolean(properties.getProperty(TRIGGER_SENT_KEY, "false"));
         this.metrics = metricsInterval > 0;
         
-        // TODO: 2023/6/18 这里看一下上层bable传来的property 
-        // 这里的Host的不是50300也不是50400，而是 8573
+
+        
         Host listenAddress = new Host(addr, port);
         
         
         EventLoopGroup eventExecutors = properties.containsKey(WORKER_GROUP_KEY) ?
                 (EventLoopGroup) properties.get(WORKER_GROUP_KEY) :
                 NetworkManager.createNewWorkerGroup();
-
+        
+        //使用了从bable注册的序列化和反序列化器
         network = new NetworkManager<>(serializer, this, hbInterval, hbTolerance, connTimeout, eventExecutors);
         network.createServerSocket(this, listenAddress, this, eventExecutors);
         

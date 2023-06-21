@@ -20,7 +20,8 @@ public class InConnectionHandler<T> extends ConnectionHandler<T> {
 
     private boolean outsideUp;
     private final InConnListener<T> listener;
-
+    
+    // 添加一个Netty连接之后，
     public InConnectionHandler(InConnListener<T> listener, MessageListener<T> consumer, EventLoop loop,
                                Attributes selfAttrs, MessageEncoder<T> encoder, MessageDecoder<T> decoder) {
         super(consumer, loop, true, selfAttrs);

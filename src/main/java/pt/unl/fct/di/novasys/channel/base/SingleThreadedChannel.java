@@ -18,6 +18,8 @@ public abstract class SingleThreadedChannel<T, Y> implements IChannel<T>, Messag
 
     //ThreadMXBean tmx = ManagementFactory.getThreadMXBean();
     
+    
+    //  treadName 使用TCP通道的话是 "TCPChannel"
     public SingleThreadedChannel(String threadName) {
         loop = new DefaultEventExecutor(new DefaultThreadFactory(threadName));
         //tmx.setThreadContentionMonitoringEnabled(true);
@@ -35,6 +37,8 @@ public abstract class SingleThreadedChannel<T, Y> implements IChannel<T>, Messag
 
 
 
+    
+    
     
     @Override
     public void sendMessage(T msg, Host peer, int connection) {

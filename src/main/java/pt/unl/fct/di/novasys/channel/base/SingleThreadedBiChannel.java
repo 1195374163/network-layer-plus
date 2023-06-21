@@ -17,7 +17,7 @@ public abstract class SingleThreadedBiChannel<T, Y> extends SingleThreadedChanne
 
     
     
-    // 这是入站用的
+    // 这是入站连接用的
     @Override
     public void inboundConnectionUp(Connection<Y> con) {
         loop.execute(() -> onInboundConnectionUp(con));
@@ -39,7 +39,7 @@ public abstract class SingleThreadedBiChannel<T, Y> extends SingleThreadedChanne
     
     
     
-    // 这个是出站用的
+
     @Override
     public final void serverSocketBind(boolean success, Throwable cause) {
         loop.execute(() -> onServerSocketBind(success, cause));
@@ -54,6 +54,10 @@ public abstract class SingleThreadedBiChannel<T, Y> extends SingleThreadedChanne
     }
 
     protected abstract void onServerSocketClose(boolean success, Throwable cause);
+
+
+
+    // 这个是出站用的
     
     
     @Override
