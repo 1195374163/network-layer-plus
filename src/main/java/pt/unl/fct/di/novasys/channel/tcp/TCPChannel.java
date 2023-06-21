@@ -181,8 +181,9 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
                 (EventLoopGroup) properties.get(WORKER_GROUP_KEY) :
                 NetworkManager.createNewWorkerGroup();
         
-        //使用了从bable注册的序列化和反序列化器
+        //使用了从bable注册的序列化和反序列化器，注册了一个netty的客户端
         network = new NetworkManager<>(serializer, this, hbInterval, hbTolerance, connTimeout, eventExecutors);
+        //创建一个netty的服务端口
         network.createServerSocket(this, listenAddress, this, eventExecutors);
         
         
@@ -212,7 +213,10 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
     // send和deliver是TCP通道中的发送和接收处理
     @Override
     protected void onSendMessage(T msg, Host peer, int connection) {
-        logger.debug("SendMessage " + msg + " " + peer + " " + (connection == CONNECTION_IN ? "IN" : "OUT"));
+        if (logger.isDebugEnabled()){
+            logger.debug("SendMessage " + msg + " " + peer + " " + (connection == CONNECTION_IN ? "IN" : "OUT"));
+        }
+       
         if (connection <= CONNECTION_OUT) {
             ConnectionState<T> conState = outConnections.get(peer);
             if (conState != null) {
@@ -262,7 +266,8 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
             }
         else
             host = conn.getPeer();
-        logger.debug("DeliverMessage " + msg + " " + host + " " + (conn.isInbound() ? "IN" : "OUT"));
+        if (logger.isDebugEnabled())
+            logger.debug("DeliverMessage " + msg + " " + host + " " + (conn.isInbound() ? "IN" : "OUT"));
         listener.deliverMessage(msg, host);
     }
 
@@ -272,18 +277,22 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
     protected void onOpenConnection(Host peer) {
         ConnectionState<T> conState = outConnections.get(peer);
         if (conState == null) {
-            logger.debug("onOpenConnection creating connection to: " + peer);
+            if (logger.isDebugEnabled())
+                logger.debug("onOpenConnection creating connection to: " + peer);
             outConnections.put(peer, new ConnectionState<>(network.createConnection(peer, attributes, this)));
         } else if (conState.getState() == ConnectionState.State.DISCONNECTING) {
-            logger.debug("onOpenConnection reopening after close to: " + peer);
+            if (logger.isDebugEnabled())
+                logger.debug("onOpenConnection reopening after close to: " + peer);
             conState.setState(ConnectionState.State.DISCONNECTING_RECONNECT);
         } else
+        if (logger.isDebugEnabled())
             logger.debug("onOpenConnection ignored: " + peer);
     }
 
     @Override
     protected void onCloseConnection(Host peer, int connection) {
-        logger.debug("CloseConnection " + peer);
+        if (logger.isDebugEnabled())
+            logger.debug("CloseConnection " + peer);
         ConnectionState<T> conState = outConnections.get(peer);
         if (conState != null) {
             if (conState.getState() == ConnectionState.State.CONNECTED || conState.getState() == ConnectionState.State.CONNECTING
@@ -302,7 +311,8 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
     
     @Override
     protected void onOutboundConnectionUp(Connection<T> conn) {
-        logger.debug("OutboundConnectionUp " + conn.getPeer());
+        if (logger.isDebugEnabled())
+            logger.debug("OutboundConnectionUp " + conn.getPeer());
         ConnectionState<T> conState = outConnections.get(conn.getPeer());
         if (conState == null) {
             throw new AssertionError("ConnectionUp with no conState: " + conn);
@@ -318,8 +328,8 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
     
     @Override
     protected void onOutboundConnectionDown(Connection<T> conn, Throwable cause) {
-
-        logger.debug("OutboundConnectionDown " + conn.getPeer() + (cause != null ? (" " + cause) : ""));
+        if (logger.isDebugEnabled())
+            logger.debug("OutboundConnectionDown " + conn.getPeer() + (cause != null ? (" " + cause) : ""));
         ConnectionState<T> conState = outConnections.remove(conn.getPeer());
         if (conState == null) {
             throw new AssertionError("ConnectionDown with no conState: " + conn);
@@ -339,7 +349,8 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
 
     @Override
     protected void onOutboundConnectionFailed(Connection<T> conn, Throwable cause) {
-        logger.debug("OutboundConnectionFailed " + conn.getPeer() + (cause != null ? (" " + cause) : ""));
+        if (logger.isDebugEnabled())
+            logger.debug("OutboundConnectionFailed " + conn.getPeer() + (cause != null ? (" " + cause) : ""));
 
         ConnectionState<T> conState = outConnections.remove(conn.getPeer());
         if (conState == null) {
@@ -377,10 +388,13 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
         LinkedList<Connection<T>> inConnList = inConnections.computeIfAbsent(clientSocket, k -> new LinkedList<>());
         inConnList.add(con);
         if (inConnList.size() == 1) {
-            logger.debug("InboundConnectionUp " + clientSocket);
+            if (logger.isDebugEnabled())
+                logger.debug("InboundConnectionUp " + clientSocket);
             listener.deliverEvent(new InConnectionUp(clientSocket));
         } else {
-            logger.debug("Multiple InboundConnectionUp " + inConnList.size() + clientSocket);
+            if (logger.isDebugEnabled()){
+                logger.debug("Multiple InboundConnectionUp " + inConnList.size() + clientSocket);
+            }
         }
     }
 
@@ -402,31 +416,39 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
             throw new AssertionError("No connection in InboundConnectionDown " + clientSocket);
 
         if (inConnList.isEmpty()) {
-            logger.debug("InboundConnectionDown " + clientSocket + (cause != null ? (" " + cause) : ""));
+            if (logger.isDebugEnabled()){
+                logger.debug("InboundConnectionDown " + clientSocket + (cause != null ? (" " + cause) : ""));
+            }
             listener.deliverEvent(new InConnectionDown(clientSocket, cause));
             inConnections.remove(clientSocket);
         } else
+        if (logger.isDebugEnabled()){
             logger.debug("Extra InboundConnectionDown " + inConnList.size() + clientSocket);
-
+        }
+        
         if (metrics)
             oldIn.add(Pair.of(clientSocket, con));
     }
     
     @Override
     public void onServerSocketBind(boolean success, Throwable cause) {
-        if (success)
-            logger.debug("Server socket ready");
+        if (success){
+            if (logger.isDebugEnabled())
+                logger.debug("Server socket ready");
+            
+        }
         else
             logger.error("Server socket bind failed: " + cause);
     }
 
     @Override
     public void onServerSocketClose(boolean success, Throwable cause) {
-        logger.debug("Server socket closed. " + (success ? "" : "Cause: " + cause));
+        if (logger.isDebugEnabled()){
+            logger.debug("Server socket closed. " + (success ? "" : "Cause: " + cause));
+        }
     }
 
 
-    
     
     @Override
     public boolean validateAttributes(Attributes attr) {

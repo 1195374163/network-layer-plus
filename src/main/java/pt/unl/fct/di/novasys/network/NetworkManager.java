@@ -149,7 +149,7 @@ public class NetworkManager<T> {
     }
     
     
-    //创建Netty的实体操作: 实参列表是  TCP通道   (ipv4:port)    attr->true   child-16   parent-1
+    //创建Netty的实体操作: 实参列表是  TCP通道   (ipv4:port)    attr->true   child-16线程   parent-1线程
     public void createServerSocket(InConnListener<T> listener, Host listenAddr, Attributes attrs, AttributeValidator validator,
                                    EventLoopGroup childGroup, EventLoopGroup parentGroup) {
         //Default number of threads for boss group is 1
