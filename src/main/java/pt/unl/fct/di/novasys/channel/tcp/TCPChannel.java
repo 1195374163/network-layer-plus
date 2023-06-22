@@ -411,12 +411,12 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
                 logger.debug("InboundConnectionUp " + clientSocket);
             listener.deliverEvent(new InConnectionUp(clientSocket));
         } else {
-            if (logger.isDebugEnabled()){
+            if (logger.isDebugEnabled())
                 logger.debug("Multiple InboundConnectionUp " + inConnList.size() + clientSocket);
-            }
         }
     }
 
+    
     @Override
     protected void onInboundConnectionDown(Connection<T> con, Throwable cause) {
         Host clientSocket;

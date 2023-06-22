@@ -27,10 +27,14 @@ public class InConnectionHandler<T> extends ConnectionHandler<T> {
         super(consumer, loop, true, selfAttrs);
         this.encoder = encoder;
         this.decoder = decoder;
-        this.listener = listener;
+        this.listener = listener;//监听入站通道的连接事件
         outsideUp = false;
     }
-
+    
+    
+    
+    
+    
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
         if (logger.isDebugEnabled()){
@@ -41,9 +45,21 @@ public class InConnectionHandler<T> extends ConnectionHandler<T> {
         this.peer = new Host(addr.getAddress(), addr.getPort());
     }
 
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) {
+        if (logger.isDebugEnabled())
+            logger.debug("In connection closed: " + ctx.channel().remoteAddress().toString());
+        if (outsideUp) {
+            listener.inboundConnectionDown(this, null);
+            outsideUp = false;
+        }
+    }
+
+
     
     
-    
+
+
     @Override
     public void sendMessage(T msg, Promise<Void> promise) {
         loop.execute(() -> {
@@ -59,15 +75,17 @@ public class InConnectionHandler<T> extends ConnectionHandler<T> {
 
     
     
-    
+    //关闭连接
     public void disconnect() {
         loop.execute(() -> {
             channel.flush();
             channel.close();
         });
     }
-
     
+    
+    
+    //在握手结束事件触发:连接建立
     @Override
     public void internalUserEventTriggered(ChannelHandlerContext ctx, Object evt) {
         if (evt instanceof HandshakeCompleted) {
@@ -78,6 +96,10 @@ public class InConnectionHandler<T> extends ConnectionHandler<T> {
             logger.warn("Unknown user event caught: " + evt);
     }
 
+    
+    
+    
+    // 异常处理： 关闭连接
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         if (logger.isDebugEnabled())
@@ -89,16 +111,9 @@ public class InConnectionHandler<T> extends ConnectionHandler<T> {
         ctx.close();
     }
 
-    @Override
-    public void channelInactive(ChannelHandlerContext ctx) {
-        if (logger.isDebugEnabled())
-            logger.debug("In connection closed: " + ctx.channel().remoteAddress().toString());
-        if (outsideUp) {
-            listener.inboundConnectionDown(this, null);
-            outsideUp = false;
-        }
-    }
 
+    
+    
     @Override
     public String toString() {
         return "InConnectionHandler{" +

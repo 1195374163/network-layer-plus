@@ -84,6 +84,32 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
         state = State.HANDSHAKING;
     }
 
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) {
+        if (state == State.DEAD) return;
+        //Callback after connection established
+        if (logger.isDebugEnabled()){
+            logger.debug("Connection closed: " + peer);
+        }
+
+        switch (state) {
+            case CONNECTED:
+                listener.outboundConnectionDown(this, null);
+                break;
+            case HANDSHAKING:
+                listener.outboundConnectionFailed(this, null);
+                break;
+            default:
+                throw new AssertionError("State is " + state + " in connection closed callback");
+        }
+        state = State.DEAD;
+    }
+    
+    
+    
+    
+    
     
     
     //Concurrent - Adds event to loop
@@ -109,6 +135,8 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
     
     
     
+    
+    
     //Concurrent - Adds event to loop
     @Override
     public void disconnect() {
@@ -125,6 +153,7 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
 
     
     
+    // 只处理握手事件
     @Override
     public void internalUserEventTriggered(ChannelHandlerContext ctx, Object evt) {
         if (evt instanceof HandshakeCompleted) {
@@ -140,6 +169,8 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
             logger.warn("Unknown user event caught: " + evt);
     }
 
+    
+    
     
     
     @Override
@@ -165,6 +196,7 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
     }
     
     
+    
     //这个方法是GenericFutureListener接口的; 在连接对应主机根据连接结果反馈
     @Override
     public void operationComplete(ChannelFuture future) {
@@ -180,26 +212,7 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
         }
     }
 
-    @Override
-    public void channelInactive(ChannelHandlerContext ctx) {
-        if (state == State.DEAD) return;
-        //Callback after connection established
-        if (logger.isDebugEnabled()){
-            logger.debug("Connection closed: " + peer);
-        }
-        
-        switch (state) {
-            case CONNECTED:
-                listener.outboundConnectionDown(this, null);
-                break;
-            case HANDSHAKING:
-                listener.outboundConnectionFailed(this, null);
-                break;
-            default:
-                throw new AssertionError("State is " + state + " in connection closed callback");
-        }
-        state = State.DEAD;
-    }
+
 
     
     

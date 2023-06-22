@@ -19,6 +19,7 @@ public class MessageEncoder<T> extends MessageToByteEncoder<NetworkMessage> {
 
     private long sentAppBytes;
     private long sentControlBytes;
+    // 是发送了app消息的数量
     private long sentAppMessages;
     private long sentControlMessages;
 

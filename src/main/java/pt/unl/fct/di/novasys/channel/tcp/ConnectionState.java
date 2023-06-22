@@ -5,7 +5,7 @@ import pt.unl.fct.di.novasys.network.Connection;
 import java.util.LinkedList;
 import java.util.Queue;
 
-// 这个类是对connection的状态描述
+// 这个类是对向外connection的状态描述;不包括向内的连接
 public class ConnectionState<T> {
     
     private final Connection<T> connection;
@@ -45,6 +45,8 @@ public class ConnectionState<T> {
         return state;
     }
 
+    
+    
     public void setState(State state) {
         this.state = state;
     }

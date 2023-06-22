@@ -18,21 +18,22 @@ public abstract class ConnectionHandler<T> extends ChannelDuplexHandler implemen
 
     private static final Logger logger = LogManager.getLogger(ConnectionHandler.class);
     
+    // 连接的对象
     Host peer;
     Attributes peerAttributes;
     Attributes selfAttributes;
     
-    
+    // 消息的编码和解码器
     MessageEncoder<T> encoder;
     MessageDecoder<T> decoder;
 
     // 如果是out 是serverChannel，如果是in ，是Channel
     Channel channel;
-    //事件执行器
+    //事件执行器：
     EventLoop loop;
     
     
-    // 从连接中拿出消息
+    // 从连接中拿出消息：转发到上层调用者
     private final MessageListener<T> consumer;
     
     
@@ -48,7 +49,7 @@ public abstract class ConnectionHandler<T> extends ChannelDuplexHandler implemen
     }
 
     
-    // 
+    // TCP通道从通道中读，将读到的app信息发送给上层，若是控制信息忽略
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         NetworkMessage netMsg = (NetworkMessage) msg;
@@ -56,7 +57,8 @@ public abstract class ConnectionHandler<T> extends ChannelDuplexHandler implemen
         consumer.deliverMessage((T) netMsg.payload, this);
     }
     
-    //
+    
+    //写
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
         ctx.write(msg, promise.addListener((ChannelFutureListener) future -> {
@@ -66,7 +68,7 @@ public abstract class ConnectionHandler<T> extends ChannelDuplexHandler implemen
         }));
     }
     
-    //
+    //事件被触发
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) {
         if (evt instanceof IdleStateEvent) {
@@ -80,11 +82,15 @@ public abstract class ConnectionHandler<T> extends ChannelDuplexHandler implemen
             internalUserEventTriggered(ctx, evt);
         }
     }
-
+    
+    
+    // 自定义的事件触发
     abstract void internalUserEventTriggered(ChannelHandlerContext ctx, Object evt);
 
     
   
+    
+    
     
     // 下面是Connection接口中的方法
     

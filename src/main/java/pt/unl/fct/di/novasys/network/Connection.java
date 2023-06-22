@@ -12,19 +12,20 @@ public interface Connection<T> {
     Attributes getPeerAttributes();
 
     Attributes getSelfAttributes();
-
-
-    EventLoop getLoop();
-
-
-    void disconnect();
-
-    
     
     boolean isInbound();
 
     boolean isOutbound();
+    
+    EventLoop getLoop();
 
+    
+    
+    
+    
+    //关闭连接
+    void disconnect();
+    
     
     
     
