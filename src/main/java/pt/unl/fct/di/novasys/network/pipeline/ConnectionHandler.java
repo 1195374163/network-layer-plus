@@ -17,7 +17,7 @@ import org.apache.logging.log4j.Logger;
 public abstract class ConnectionHandler<T> extends ChannelDuplexHandler implements Connection<T> {
 
     private static final Logger logger = LogManager.getLogger(ConnectionHandler.class);
-
+    
     Host peer;
     Attributes peerAttributes;
     Attributes selfAttributes;
@@ -26,14 +26,15 @@ public abstract class ConnectionHandler<T> extends ChannelDuplexHandler implemen
     MessageEncoder<T> encoder;
     MessageDecoder<T> decoder;
 
-    
+    // 如果是out 是serverChannel，如果是in ，是Channel
     Channel channel;
     //事件执行器
     EventLoop loop;
     
     
-    
+    // 从连接中拿出消息
     private final MessageListener<T> consumer;
+    
     
     //代表此连接是接入的还是接出的连接
     private final boolean incoming;
@@ -46,14 +47,16 @@ public abstract class ConnectionHandler<T> extends ChannelDuplexHandler implemen
         this.loop = loop;
     }
 
-
+    
+    // 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         NetworkMessage netMsg = (NetworkMessage) msg;
         if (netMsg.code == NetworkMessage.CTRL_MSG) return;
         consumer.deliverMessage((T) netMsg.payload, this);
     }
-
+    
+    //
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
         ctx.write(msg, promise.addListener((ChannelFutureListener) future -> {
@@ -62,7 +65,8 @@ public abstract class ConnectionHandler<T> extends ChannelDuplexHandler implemen
             }
         }));
     }
-
+    
+    //
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) {
         if (evt instanceof IdleStateEvent) {
@@ -88,9 +92,6 @@ public abstract class ConnectionHandler<T> extends ChannelDuplexHandler implemen
     public final Host getPeer() {
         return peer;
     }
-
-    
-    
     
     public final Attributes getPeerAttributes() {
         return peerAttributes;
@@ -99,10 +100,6 @@ public abstract class ConnectionHandler<T> extends ChannelDuplexHandler implemen
     public final Attributes getSelfAttributes() {
         return selfAttributes;
     }
-
-    
-    
-    
     
     public boolean isInbound() {
         return incoming;
@@ -111,16 +108,13 @@ public abstract class ConnectionHandler<T> extends ChannelDuplexHandler implemen
     public boolean isOutbound() {
         return !incoming;
     }
-
-    
-    
-    
     
     @Override
     public EventLoop getLoop() {
         return loop;
     }
-
+    
+    
     
     
     

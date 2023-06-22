@@ -126,8 +126,11 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
 
     
     
+    
+    
     // 在这里调用了网络层的封装的类，拥有下层的对象
     private final NetworkManager<T> network;
+    
     
     
     //上层bable层传递过来的参数,是对通道消息的消费者，设置是发起这个通道的消费者
@@ -142,6 +145,8 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
     private final Map<Host, LinkedList<Connection<T>>> inConnections;
     
     private final Map<Host, ConnectionState<T>> outConnections;
+    
+    
     
     
     
@@ -167,6 +172,7 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
             throw new IllegalArgumentException(NAME + " requires binding address");
 
         int port = Integer.parseInt(properties.getProperty(PORT_KEY, DEFAULT_PORT));
+        
         int hbInterval = Integer.parseInt(properties.getProperty(HEARTBEAT_INTERVAL_KEY, DEFAULT_HB_INTERVAL));
         int hbTolerance = Integer.parseInt(properties.getProperty(HEARTBEAT_TOLERANCE_KEY, DEFAULT_HB_TOLERANCE));
         int connTimeout = Integer.parseInt(properties.getProperty(CONNECT_TIMEOUT_KEY, DEFAULT_CONNECT_TIMEOUT));
@@ -175,18 +181,19 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
         this.metrics = metricsInterval > 0;
         
 
-        
+        // listenAddress是自身传过来的ip地址和端口
         Host listenAddress = new Host(addr, port);
         
-        
+        //
         EventLoopGroup eventExecutors = properties.containsKey(WORKER_GROUP_KEY) ?
                 (EventLoopGroup) properties.get(WORKER_GROUP_KEY) :
                 NetworkManager.createNewWorkerGroup();
           
         //使用了从bable注册的序列化和反序列化器，注册了一个netty的客户端
         network = new NetworkManager<>(serializer, this, hbInterval, hbTolerance, connTimeout, eventExecutors);
-        //创建一个netty的服务端口
+        //创建一个netty的服务端口监听连接
         network.createServerSocket(this, listenAddress, this, eventExecutors);
+        
         
         
         // 属性设置了：两个通道id  和 ip:port
@@ -212,12 +219,52 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
     }
 
 
+    
+    
+
+    //-------------开启与其他节点的连接
+    @Override
+    protected void onOpenConnection(Host peer) {
+        ConnectionState<T> conState = outConnections.get(peer);
+        if (conState == null) {
+            if (logger.isDebugEnabled())
+                logger.debug("onOpenConnection creating connection to: " + peer);
+            outConnections.put(peer, new ConnectionState<>(network.createConnection(peer, attributes, this)));
+        } else if (conState.getState() == ConnectionState.State.DISCONNECTING) {
+            if (logger.isDebugEnabled())
+                logger.debug("onOpenConnection reopening after close to: " + peer);
+            conState.setState(ConnectionState.State.DISCONNECTING_RECONNECT);
+        } else{
+            if (logger.isDebugEnabled())
+                logger.debug("onOpenConnection ignored: " + peer);
+        }
+
+    }
+
+    @Override
+    protected void onCloseConnection(Host peer, int connection) {
+        if (logger.isDebugEnabled())
+            logger.debug("CloseConnection " + peer);
+        ConnectionState<T> conState = outConnections.get(peer);
+        if (conState != null) {
+            if (conState.getState() == ConnectionState.State.CONNECTED || conState.getState() == ConnectionState.State.CONNECTING
+                    || conState.getState() == ConnectionState.State.DISCONNECTING_RECONNECT) {
+                conState.setState(ConnectionState.State.DISCONNECTING);
+                conState.getQueue().clear();
+                conState.getConnection().disconnect();
+            }
+        }
+    }
+
+
+
+
 
     //从通道拿数据
     @Override
     public void onDeliverMessage(T msg, Connection<T> conn) {
         Host host;
-        if (conn.isInbound())
+        if (conn.isInbound())//如果是入通道
             try {
                 host = conn.getPeerAttributes().getHost(LISTEN_ADDRESS_ATTRIBUTE);
             } catch (IOException e) {
@@ -225,7 +272,7 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
                 conn.disconnect();
                 return;
             }
-        else
+        else// 如果这通道是出通道
             host = conn.getPeer();
         if (logger.isDebugEnabled())
             logger.debug("DeliverMessage " + msg + " " + host + " " + (conn.isInbound() ? "IN" : "OUT"));
@@ -278,45 +325,8 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
 
     
     
-    @Override
-    protected void onOpenConnection(Host peer) {
-        ConnectionState<T> conState = outConnections.get(peer);
-        if (conState == null) {
-            if (logger.isDebugEnabled())
-                logger.debug("onOpenConnection creating connection to: " + peer);
-            outConnections.put(peer, new ConnectionState<>(network.createConnection(peer, attributes, this)));
-        } else if (conState.getState() == ConnectionState.State.DISCONNECTING) {
-            if (logger.isDebugEnabled())
-                logger.debug("onOpenConnection reopening after close to: " + peer);
-            conState.setState(ConnectionState.State.DISCONNECTING_RECONNECT);
-        } else{
-            if (logger.isDebugEnabled())
-                logger.debug("onOpenConnection ignored: " + peer);
-        }
-
-    }
-
-    @Override
-    protected void onCloseConnection(Host peer, int connection) {
-        if (logger.isDebugEnabled())
-            logger.debug("CloseConnection " + peer);
-        ConnectionState<T> conState = outConnections.get(peer);
-        if (conState != null) {
-            if (conState.getState() == ConnectionState.State.CONNECTED || conState.getState() == ConnectionState.State.CONNECTING
-                    || conState.getState() == ConnectionState.State.DISCONNECTING_RECONNECT) {
-                conState.setState(ConnectionState.State.DISCONNECTING);
-                conState.getQueue().clear();
-                conState.getConnection().disconnect();
-            }
-        }
-    }
     
-    
-    
-    
-    
-    
-    // ------------下面是连接事件的处理
+    // ------------下面是连接事件的处理：给上层传递event
     
     @Override
     protected void onOutboundConnectionUp(Connection<T> conn) {

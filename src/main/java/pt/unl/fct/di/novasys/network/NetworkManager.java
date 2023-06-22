@@ -28,20 +28,25 @@ import pt.unl.fct.di.novasys.network.pipeline.*;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
- *
+ *关于netty网络层的封装
  */
 public class NetworkManager<T> {
 
     private static final Logger logger = LogManager.getLogger(NetworkManager.class);
-
+    
+    // netty的客户端
     private final Bootstrap clientBootstrap;
+    
+    // 在TCP通道传递过来的一个事件组，从Babel层传递过来的
     private final EventLoopGroup workerGroup;
 
-    
+    // serverChannel监听其他主机到这台主机的连接
     private Channel serverChannel;
 
     
+    // 对message的序列化和反序列化器
     private final ISerializer<T> serializer;
+    //  TCP通道
     private final MessageListener<T> consumer;
     
     
@@ -82,9 +87,10 @@ public class NetworkManager<T> {
         this(serializer, consumer, hbInterval, hbTolerance, connectTimeout, createNewWorkerGroup(nWorkerThreads));
     }
     
+    
     //-----------------------------实际的执行者
     
-    //TCP通道使用这个创建一个客户端：序列化和反序列化器    tcp通道   
+    //TCP通道使用这个创建一个客户端：序列化和反序列化器    consumer:tcp通道       workerGroup是传递过来的一个事件组
     public NetworkManager(ISerializer<T> serializer, MessageListener<T> consumer,
                           int hbInterval, int hbTolerance, int connectTimeout, EventLoopGroup workerGroup) {
         this.serializer = serializer;
@@ -103,12 +109,16 @@ public class NetworkManager<T> {
     
     
     
+    
+    
     // 作为netty的客户端，维持了一个向外的连接
     public Connection<T> createConnection(Host peer, Attributes attrs, OutConnListener<T> listener) {
         return new OutConnectionHandler<>(peer, clientBootstrap, listener, consumer,
                 serializer, workerGroup.next(), attrs, hbInterval, hbTolerance);
     }
 
+    
+    
     
     
     
@@ -149,7 +159,7 @@ public class NetworkManager<T> {
     }
     
     
-    //创建Netty的实体操作: 实参列表是  TCP通道   (ipv4:port)    attr->true   child-16线程   parent-1线程
+    //创建Netty的实体操作: 实参列表是  TCP通道   (ipv4:port)    空属性组   child-16线程   parent-1线程
     public void createServerSocket(InConnListener<T> listener, Host listenAddr, Attributes attrs, AttributeValidator validator,
                                    EventLoopGroup childGroup, EventLoopGroup parentGroup) {
         //Default number of threads for boss group is 1

@@ -41,6 +41,9 @@ public class InConnectionHandler<T> extends ConnectionHandler<T> {
         this.peer = new Host(addr.getAddress(), addr.getPort());
     }
 
+    
+    
+    
     @Override
     public void sendMessage(T msg, Promise<Void> promise) {
         loop.execute(() -> {
@@ -54,6 +57,9 @@ public class InConnectionHandler<T> extends ConnectionHandler<T> {
         sendMessage(msg, null);
     }
 
+    
+    
+    
     public void disconnect() {
         loop.execute(() -> {
             channel.flush();

@@ -32,9 +32,10 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
     public OutConnectionHandler(Host peer, Bootstrap bootstrap, OutConnListener<T> listener,
                                 MessageListener<T> consumer, ISerializer<T> serializer,
                                 EventLoop loop, Attributes selfAttrs, int hbInterval, int hbTolerance) {
+        // consumer 也是TCP通道
         super(consumer, loop, false, selfAttrs);
         this.peer = peer;
-
+        // tcp通道
         this.listener = listener;
 
         this.state = State.CONNECTING;
@@ -59,7 +60,8 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
 
         connect();
     }
-
+    
+    
     //Concurrent - Adds event to loop
     private void connect() {
         loop.execute(() -> {
@@ -72,6 +74,9 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
         });
     }
 
+    
+    
+    
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
         if (state != State.CONNECTING || ctx.channel() != channel)
@@ -79,6 +84,8 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
         state = State.HANDSHAKING;
     }
 
+    
+    
     //Concurrent - Adds event to loop
     @Override
     public void sendMessage(T msg, Promise<Void> promise) {
@@ -99,6 +106,9 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
         sendMessage(msg, null);
     }
 
+    
+    
+    
     //Concurrent - Adds event to loop
     @Override
     public void disconnect() {
@@ -113,6 +123,8 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
         });
     }
 
+    
+    
     @Override
     public void internalUserEventTriggered(ChannelHandlerContext ctx, Object evt) {
         if (evt instanceof HandshakeCompleted) {
@@ -128,6 +140,8 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
             logger.warn("Unknown user event caught: " + evt);
     }
 
+    
+    
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         if (state == State.DEAD) return;
@@ -151,7 +165,7 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
     }
     
     
-    //这个方法是GenericFutureListener接口的
+    //这个方法是GenericFutureListener接口的; 在连接对应主机根据连接结果反馈
     @Override
     public void operationComplete(ChannelFuture future) {
         //Connection callback
@@ -187,6 +201,8 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
         state = State.DEAD;
     }
 
+    
+    
     @Override
     public String toString() {
         return "OutConnectionHandler{" +
