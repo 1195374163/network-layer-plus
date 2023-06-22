@@ -13,7 +13,7 @@ public abstract class SingleThreadedChannel<T, Y> implements IChannel<T>, Messag
 
     private static final Logger logger = LogManager.getLogger(SingleThreadedChannel.class);
 
-    
+    // 单线程事件执行器    
     protected final DefaultEventExecutor loop;
 
     //ThreadMXBean tmx = ManagementFactory.getThreadMXBean();
@@ -28,6 +28,8 @@ public abstract class SingleThreadedChannel<T, Y> implements IChannel<T>, Messag
     
     
     
+    
+    //-------从连接中拿出消息传给应用
     @Override
     public void deliverMessage(Y msg, Connection<Y> conn) {
         loop.execute(() -> onDeliverMessage(msg, conn));
@@ -36,9 +38,13 @@ public abstract class SingleThreadedChannel<T, Y> implements IChannel<T>, Messag
     protected abstract void onDeliverMessage(Y msg, Connection<Y> conn);
 
 
+    
+    
 
     
     
+    
+    //----- 开启/关闭新的连接;并向连接中发送数据
     
     @Override
     public void sendMessage(T msg, Host peer, int connection) {

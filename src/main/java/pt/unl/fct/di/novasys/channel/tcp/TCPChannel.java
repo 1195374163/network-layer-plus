@@ -126,12 +126,13 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
 
     
     
-    // 在这里调用了网络层的封装的类，
+    // 在这里调用了网络层的封装的类，拥有下层的对象
     private final NetworkManager<T> network;
     
     
     //上层bable层传递过来的参数,是对通道消息的消费者，设置是发起这个通道的消费者
     private final ChannelListener<T> listener;
+    
     
     private final Attributes attributes;
 
@@ -188,7 +189,7 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
         network.createServerSocket(this, listenAddress, this, eventExecutors);
         
         
-        // 属性设置了两个
+        // 属性设置了：两个通道id  和 ip:port
         attributes = new Attributes();
         attributes.putShort(CHANNEL_MAGIC_ATTRIBUTE, TCP_MAGIC_NUMBER);
         attributes.putHost(LISTEN_ADDRESS_ATTRIBUTE, listenAddress);
@@ -204,14 +205,35 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
             loop.scheduleAtFixedRate(this::triggerMetricsEvent, metricsInterval, metricsInterval, TimeUnit.MILLISECONDS);
         }
     }
-
+    
+    // 测试指标用的，默认不开启
     void triggerMetricsEvent() {
         listener.deliverEvent(new ChannelMetrics(oldIn, oldOUt, inConnections, outConnections));
     }
 
+
+
+    //从通道拿数据
+    @Override
+    public void onDeliverMessage(T msg, Connection<T> conn) {
+        Host host;
+        if (conn.isInbound())
+            try {
+                host = conn.getPeerAttributes().getHost(LISTEN_ADDRESS_ATTRIBUTE);
+            } catch (IOException e) {
+                logger.error("Inbound connection without valid listen address in deliver message: " + e.getMessage());
+                conn.disconnect();
+                return;
+            }
+        else
+            host = conn.getPeer();
+        if (logger.isDebugEnabled())
+            logger.debug("DeliverMessage " + msg + " " + host + " " + (conn.isInbound() ? "IN" : "OUT"));
+        listener.deliverMessage(msg, host);
+    }
     
-    
-    // send和deliver是TCP通道中的发送和接收处理
+
+    // send是TCP通道中的发送
     @Override
     protected void onSendMessage(T msg, Host peer, int connection) {
         if (logger.isDebugEnabled()){
@@ -252,28 +274,10 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
         });
         established.sendMessage(msg, promise);
     }
+    
 
-
-    @Override
-    public void onDeliverMessage(T msg, Connection<T> conn) {
-        Host host;
-        if (conn.isInbound())
-            try {
-                host = conn.getPeerAttributes().getHost(LISTEN_ADDRESS_ATTRIBUTE);
-            } catch (IOException e) {
-                logger.error("Inbound connection without valid listen address in deliver message: " + e.getMessage());
-                conn.disconnect();
-                return;
-            }
-        else
-            host = conn.getPeer();
-        if (logger.isDebugEnabled())
-            logger.debug("DeliverMessage " + msg + " " + host + " " + (conn.isInbound() ? "IN" : "OUT"));
-        listener.deliverMessage(msg, host);
-    }
-
-
-
+    
+    
     @Override
     protected void onOpenConnection(Host peer) {
         ConnectionState<T> conState = outConnections.get(peer);
@@ -311,6 +315,8 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
     
     
     
+    
+    // ------------下面是连接事件的处理
     
     @Override
     protected void onOutboundConnectionUp(Connection<T> conn) {
@@ -453,7 +459,9 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
     }
 
 
-    //
+    
+    
+    // 验证属性组中是否为TCP连接
     @Override
     public boolean validateAttributes(Attributes attr) {
         Short channel = attr.getShort(CHANNEL_MAGIC_ATTRIBUTE);
