@@ -37,8 +37,10 @@ public class NetworkManager<T> {
     // netty的客户端
     private final Bootstrap clientBootstrap;
     
+    
     // 在TCP通道传递过来的一个事件组，从Babel层传递过来的
     private final EventLoopGroup workerGroup;
+    
 
     // serverChannel监听其他主机到这台主机的连接
     private Channel serverChannel;
@@ -46,12 +48,15 @@ public class NetworkManager<T> {
     
     // 对message的序列化和反序列化器
     private final ISerializer<T> serializer;
-    //  TCP通道
+    
+    //  TCP通道，主要是deliverMessage
     private final MessageListener<T> consumer;
     
     
     private final int hbInterval;
     private final int hbTolerance;
+    
+    
     
     
     static final Class<? extends Channel> channelClass;
@@ -70,6 +75,8 @@ public class NetworkManager<T> {
         }
     }
 
+    
+    
     
     
     // netty的客户端，连接别的节点
@@ -205,6 +212,7 @@ public class NetworkManager<T> {
         }
     }
 
+    
     
     
     

@@ -25,10 +25,13 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
     private final Bootstrap clientBootstrap;
     private final OutConnListener<T> listener;
     
+    
     enum State {CONNECTING, HANDSHAKING, CONNECTED, DEAD}
     // Only change in event loop!
     private State state;
 
+    
+    
     public OutConnectionHandler(Host peer, Bootstrap bootstrap, OutConnListener<T> listener,
                                 MessageListener<T> consumer, ISerializer<T> serializer,
                                 EventLoop loop, Attributes selfAttrs, int hbInterval, int hbTolerance) {
@@ -62,6 +65,8 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
     }
     
     
+    
+    
     //Concurrent - Adds event to loop
     private void connect() {
         loop.execute(() -> {
@@ -70,10 +75,30 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
             if (logger.isDebugEnabled()){
                 logger.debug("Connecting to " + peer);
             }
+            //客户端的channel
             channel = clientBootstrap.connect().addListener(this).channel();
         });
     }
 
+    
+    
+    //Concurrent - Adds event to loop
+    @Override
+    public void disconnect() {
+        loop.execute(() -> {
+            if (state == State.DEAD)
+                return;
+            if (logger.isDebugEnabled()){
+                logger.debug("Disconnecting channel to: " + peer + ", status was " + state);
+            }
+            channel.flush();
+            channel.close();
+        });
+    }
+    
+    
+    
+    
     
     
     
@@ -136,21 +161,8 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
     
     
     
-    
-    //Concurrent - Adds event to loop
-    @Override
-    public void disconnect() {
-        loop.execute(() -> {
-            if (state == State.DEAD)
-                return;
-            if (logger.isDebugEnabled()){
-                logger.debug("Disconnecting channel to: " + peer + ", status was " + state);
-            }
-            channel.flush();
-            channel.close();
-        });
-    }
 
+    
     
     
     // 只处理握手事件
@@ -212,8 +224,7 @@ public class OutConnectionHandler<T> extends ConnectionHandler<T> implements Gen
         }
     }
 
-
-
+    
     
     
     @Override

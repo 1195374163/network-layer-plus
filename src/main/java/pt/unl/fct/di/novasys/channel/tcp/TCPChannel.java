@@ -173,6 +173,8 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
 
         int port = Integer.parseInt(properties.getProperty(PORT_KEY, DEFAULT_PORT));
         
+        
+        
         int hbInterval = Integer.parseInt(properties.getProperty(HEARTBEAT_INTERVAL_KEY, DEFAULT_HB_INTERVAL));
         int hbTolerance = Integer.parseInt(properties.getProperty(HEARTBEAT_TOLERANCE_KEY, DEFAULT_HB_TOLERANCE));
         int connTimeout = Integer.parseInt(properties.getProperty(CONNECT_TIMEOUT_KEY, DEFAULT_CONNECT_TIMEOUT));
@@ -184,25 +186,27 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
         // listenAddress是自身传过来的ip地址和端口
         Host listenAddress = new Host(addr, port);
         
-        //
+        //是创造 core*2 线程的线程池
         EventLoopGroup eventExecutors = properties.containsKey(WORKER_GROUP_KEY) ?
                 (EventLoopGroup) properties.get(WORKER_GROUP_KEY) :
                 NetworkManager.createNewWorkerGroup();
           
         //使用了从bable注册的序列化和反序列化器，注册了一个netty的客户端
         network = new NetworkManager<>(serializer, this, hbInterval, hbTolerance, connTimeout, eventExecutors);
+        
         //创建一个netty的服务端口监听连接
         network.createServerSocket(this, listenAddress, this, eventExecutors);
         
         
         
-        // 属性设置了：两个通道id  和 ip:port
+        //属性设置了两个：TCP固定标记  和   ip:port
         attributes = new Attributes();
         attributes.putShort(CHANNEL_MAGIC_ATTRIBUTE, TCP_MAGIC_NUMBER);
         attributes.putHost(LISTEN_ADDRESS_ATTRIBUTE, listenAddress);
 
         
         
+        // 入站;出站连接的Map
         inConnections = new HashMap<>();
         outConnections = new HashMap<>();
 
@@ -278,6 +282,9 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
             logger.debug("DeliverMessage " + msg + " " + host + " " + (conn.isInbound() ? "IN" : "OUT"));
         listener.deliverMessage(msg, host);
     }
+    
+    
+    
     
 
     // send是TCP通道中的发送
@@ -393,6 +400,7 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
     
     
     
+    
     @Override
     protected void onInboundConnectionUp(Connection<T> con) {
         Host clientSocket;
@@ -455,7 +463,6 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
         if (success){
             if (logger.isDebugEnabled())
                 logger.debug("Server socket ready");
-            
         }
         else
             logger.error("Server socket bind failed: " + cause);
@@ -469,6 +476,7 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
     }
 
 
+    
     
     
     // 验证属性组中是否为TCP连接

@@ -29,7 +29,7 @@ public abstract class ConnectionHandler<T> extends ChannelDuplexHandler implemen
 
     // 如果是out 是serverChannel，如果是in ，是Channel
     Channel channel;
-    //事件执行器：
+    //事件执行器：在
     EventLoop loop;
     
     
@@ -49,7 +49,13 @@ public abstract class ConnectionHandler<T> extends ChannelDuplexHandler implemen
     }
 
     
-    // TCP通道从通道中读，将读到的app信息发送给上层，若是控制信息忽略
+    
+    
+    
+    
+    
+    
+    // TCP通道从通道中读，将读到的app信息发送给上层，若是控制信息忽略----是入连接读
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         NetworkMessage netMsg = (NetworkMessage) msg;
@@ -58,7 +64,7 @@ public abstract class ConnectionHandler<T> extends ChannelDuplexHandler implemen
     }
     
     
-    //写
+    //给指定通道写  一般是写通道
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
         ctx.write(msg, promise.addListener((ChannelFutureListener) future -> {
@@ -67,6 +73,7 @@ public abstract class ConnectionHandler<T> extends ChannelDuplexHandler implemen
             }
         }));
     }
+    
     
     //事件被触发
     @Override
@@ -86,13 +93,14 @@ public abstract class ConnectionHandler<T> extends ChannelDuplexHandler implemen
     
     // 自定义的事件触发
     abstract void internalUserEventTriggered(ChannelHandlerContext ctx, Object evt);
-
+    
     
   
     
     
     
-    // 下面是Connection接口中的方法
+    
+    //---------------- 下面是Connection接口中的方法
     
     
     public final Host getPeer() {

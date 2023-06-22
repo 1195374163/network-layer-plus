@@ -18,13 +18,12 @@ public interface Connection<T> {
     boolean isOutbound();
     
     EventLoop getLoop();
-
-    
-    
-    
     
     //关闭连接
     void disconnect();
+    
+    
+    
     
     
     

@@ -16,7 +16,8 @@ public class MessageEncoder<T> extends MessageToByteEncoder<NetworkMessage> {
     private static final Logger logger = LogManager.getLogger(MessageEncoder.class);
 
     private final ISerializer<T> serializer;
-
+    
+    //是发送的byte的数量
     private long sentAppBytes;
     private long sentControlBytes;
     // 是发送了app消息的数量
