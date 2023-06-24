@@ -239,7 +239,6 @@ public class TCPChannel<T> extends SingleThreadedBiChannel<T, T> implements Attr
                 logger.debug("onOpenConnection reopening after close to: " + peer);
             conState.setState(ConnectionState.State.DISCONNECTING_RECONNECT);
         } else{
-            if (logger.isDebugEnabled())
                 logger.debug("onOpenConnection ignored: " + peer);
         }
 
